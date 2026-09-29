@@ -498,15 +498,14 @@ async function unlockTimesheet(){
     document.getElementById("timesheetApp").style.display = "block";
     render();
   }catch(err){
-    msg.style.color = "#c84d4d";
-    msg.textContent = err?.name === "AbortError"
-      ? "The access service took too long. Try again. / El acceso tardó demasiado. Inténtalo de nuevo."
-      : "Invalid code or access unavailable. / Código no válido o acceso no disponible.";
-  }finally{
-    clearTimeout(timeout);
-    btn.disabled = false;
-    btn.textContent = "Access / Acceder";
-  }
+  console.error("Timesheet access error:", err);
+
+  msg.style.color = "#c84d4d";
+
+  msg.textContent = err?.name === "AbortError"
+    ? "The access service took too long. Try again. / El acceso tardó demasiado. Inténtalo de nuevo."
+    : `Error: ${err?.message || err}`;
+}
 }
 
 document.getElementById("accessBtn").addEventListener("click", unlockTimesheet);

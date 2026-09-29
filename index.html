@@ -536,10 +536,77 @@ document.getElementById("addProject").onclick = ()=>{
 document.getElementById("prevWeek").onclick=()=>{weekStart.setDate(weekStart.getDate()-7);render();}
 document.getElementById("nextWeek").onclick=()=>{weekStart.setDate(weekStart.getDate()+7);render();}
 document.getElementById("saveDraft").onclick=()=>{save();alert("Draft saved locally / Borrador guardado en este navegador.");}
-document.getElementById("submitBtn").onclick=()=>{
-  const confirmed = confirm("¿Estás seguro de enviar tus horas? / Are you sure you want to submit your hours?");
-  if(!confirmed) return;
-  alert("Parte preparado para enviar. / Timesheet ready to submit.\n\n(Prototipo: todavía no se envían datos a Make ni Notion.)");
+document.getElementById("submitBtn").onclick = async () => {
+  const confirmed = confirm(
+    "¿Estás seguro de enviar tus horas? / Are you sure you want to submit your hours?"
+  );
+  if (!confirmed) return;
+
+  const submitBtn = document.getElementById("submitBtn");
+  submitBtn.disabled = true;
+  submitBtn.textContent = "Sending... / Enviando...";
+
+  try {
+    const entries = [];
+
+    for (const project of projects) {
+      for (const [date, hours] of Object.entries(data[project] || {})) {
+        const numericHours = Number(hours);
+
+        if (numericHours > 0) {
+          entries.push({
+            project: project,
+            date: date,
+            hours: numericHours
+          });
+        }
+      }
+    }
+
+    if (entries.length === 0) {
+      alert("No hay horas para enviar. / There are no hours to submit.");
+      return;
+    }
+
+    const payload = {
+      accessCode: document.getElementById("accessCode").value.trim(),
+      consultant: consultant,
+      periodStart: formatISODate(monthStart),
+      periodEnd: formatISODate(monthEnd),
+      entries: entries
+    };
+
+    const response = await fetch(
+      "https://hook.eu1.make.com/blhup6vjd8kwv8ptiuln0jbq7fagf24y",
+      {
+        method: "POST",
+        mode: "cors",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    alert(
+      "Horas enviadas correctamente. / Timesheet submitted successfully."
+    );
+
+  } catch (error) {
+    console.error("Submit error:", error);
+
+    alert(
+      "No se pudieron enviar las horas. Inténtalo de nuevo. / Could not submit the timesheet. Please try again."
+    );
+
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Submit timesheet / Enviar";
+  }
 };
 </script>
 </body>

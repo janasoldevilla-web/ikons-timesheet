@@ -449,14 +449,24 @@ async function unlockTimesheet(){
   try{
     const response = await fetch(`${WEBHOOK_URL}?code=${encodeURIComponent(code)}`, {
       method: "GET",
+      mode: "cors",
       cache: "no-store",
-      referrerPolicy: "no-referrer",
       signal: controller.signal
     });
     if(!response.ok) throw new Error(`HTTP ${response.status}`);
-    const payload = await response.json();
-    if(!payload || payload.success !== true || !payload.consultant || !payload.periodStart || !payload.periodEnd){
-      throw new Error("Invalid response");
+
+    // Read as text first. This is more tolerant of how Make returns webhook bodies.
+    const raw = await response.text();
+    let payload;
+    try {
+      payload = JSON.parse(raw);
+    } catch (e) {
+      throw new Error("Make returned invalid JSON");
+    }
+
+    const success = payload && (payload.success === true || payload.success === "true");
+    if(!success || !payload.consultant || !payload.periodStart || !payload.periodEnd){
+      throw new Error("Incomplete response from Make");
     }
 
     consultant = String(payload.consultant);
